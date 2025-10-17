@@ -30,12 +30,14 @@ const MONTHS = [
   'July','August','September','October','November','December'
 ];
 
+// CHANGE: Added 'remarks' to the initial fee structure
 const createInitialFees = () => {
   const f = {};
-  MONTHS.forEach(m => f[m] = { amount: 0, paid: false });
-  f['Additional'] = { amount: 0, paid: false, description: '' };
+  MONTHS.forEach(m => f[m] = { amount: 0, paid: false, remarks: '' });
+  f['Additional'] = { amount: 0, paid: false, description: '', remarks: '' };
   return f;
 };
+
 
 // -----------------------------
 // Small UI bits
@@ -296,9 +298,8 @@ const StudentDetailsPage = () => {
       return;
     }
     
-    setIsGeneratingPdf(true); // Start loading state
+    setIsGeneratingPdf(true);
     
-    // Use a timeout to allow the UI to update before the blocking PDF generation starts
     setTimeout(() => {
         try {
             const doc = new jsPDF();
@@ -307,7 +308,6 @@ const StudentDetailsPage = () => {
             const pageHeight = doc.internal.pageSize.height;
             const pageWidth = doc.internal.pageSize.width;
 
-            // --- Main Report Header ---
             doc.setFontSize(22); doc.setFont('helvetica', 'bold');
             doc.text("Savvy School", pageWidth / 2, y, { align: 'center' });
             y += 8;
@@ -325,11 +325,8 @@ const StudentDetailsPage = () => {
             doc.text(`Fee Filter: ${feeFilter.month} - ${feeFilter.status}`, margin, y);
             y += 8;
 
-
-            // --- Loop Through Students ---
             studentsToExport.forEach((student, index) => {
-                // Check for page break before starting a new student record
-                if (y > pageHeight - 60) { // estimate space needed for a student header and a few rows
+                if (y > pageHeight - 60) {
                     doc.addPage();
                     y = margin;
                 }
@@ -341,23 +338,22 @@ const StudentDetailsPage = () => {
                     y += 8;
                 }
 
-                // --- Student Personal Info Header ---
                 doc.setFontSize(12); doc.setFont('helvetica', 'bold');
                 doc.text(`${student.name} (Roll No: ${student.rollNumber})`, margin, y);
                 doc.setFontSize(10); doc.setFont('helvetica', 'normal');
                 doc.text(`Class: ${student.studentClass}`, pageWidth - margin, y, { align: 'right' });
                 y += 8;
 
-                // --- Fee Details Table Header ---
+                // CHANGE: Added 'Remarks' column to PDF header and adjusted spacing
                 doc.setFontSize(9); doc.setFont('helvetica', 'bold');
                 doc.setFillColor(230, 230, 230);
                 doc.rect(margin, y, pageWidth - 2 * margin, 7, 'F');
                 doc.text("Month", margin + 2, y + 5);
-                doc.text("Fee Amount (Rs.)", margin + 90, y + 5);
-                doc.text("Status", margin + 150, y + 5);
+                doc.text("Amount (Rs.)", margin + 50, y + 5);
+                doc.text("Status", margin + 100, y + 5);
+                doc.text("Remarks", margin + 140, y + 5);
                 y += 7;
 
-                // --- Fee Details Table Body ---
                 MONTHS.forEach(month => {
                     if (y > pageHeight - 20) {
                         doc.addPage(); y = margin;
@@ -367,29 +363,34 @@ const StudentDetailsPage = () => {
                         doc.setFillColor(230, 230, 230);
                         doc.rect(margin, y, pageWidth - 2 * margin, 7, 'F');
                         doc.text("Month", margin + 2, y + 5);
-                        doc.text("Fee Amount (Rs.)", margin + 90, y + 5);
-                        doc.text("Status", margin + 150, y + 5);
+                        doc.text("Amount (Rs.)", margin + 50, y + 5);
+                        doc.text("Status", margin + 100, y + 5);
+                        doc.text("Remarks", margin + 140, y + 5);
                         y += 7;
                     }
                     
                     doc.setFontSize(9); doc.setFont('helvetica', 'normal');
-                    const fee = student.fees[month] || { amount: 0, paid: false };
+                    // CHANGE: Get 'remarks' from fee data for PDF
+                    const fee = student.fees[month] || { amount: 0, paid: false, remarks: '' };
                     const amount = Number(fee.amount || 0);
                     const status = amount > 0 ? (fee.paid ? 'Paid' : 'Unpaid') : 'N/A';
+                    const remarks = fee.remarks || '';
 
                     doc.text(month, margin + 2, y + 5);
-                    doc.text(amount.toLocaleString(), margin + 90, y + 5);
+                    doc.text(amount.toLocaleString(), margin + 90, y + 5, { align: 'right' });
 
-                    if (status === 'Paid') doc.setTextColor(34, 139, 34); // Green
-                    else if (status === 'Unpaid') doc.setTextColor(220, 20, 60); // Red
-                    else doc.setTextColor(128, 128, 128); // Grey
+                    if (status === 'Paid') doc.setTextColor(34, 139, 34);
+                    else if (status === 'Unpaid') doc.setTextColor(220, 20, 60);
+                    else doc.setTextColor(128, 128, 128);
 
-                    doc.text(status, margin + 150, y + 5);
-                    doc.setTextColor(0, 0, 0); // Reset color
+                    doc.text(status, margin + 100, y + 5);
+                    doc.setTextColor(0, 0, 0);
+
+                    // CHANGE: Display remarks in the PDF
+                    doc.text(remarks, margin + 140, y + 5);
                     y += 7;
                 });
                 
-                // --- Student Summary Footer ---
                 y += 2;
                 doc.setLineWidth(0.2);
                 doc.line(margin, y, pageWidth - margin, y);
@@ -407,9 +408,9 @@ const StudentDetailsPage = () => {
             toast.error("Failed to generate PDF report.");
             console.error("PDF generation failed:", error);
         } finally {
-            setIsGeneratingPdf(false); // End loading state
+            setIsGeneratingPdf(false);
         }
-    }, 100); // 100ms timeout
+    }, 100);
   };
 
   const handleExportFiltered = () => {
@@ -443,7 +444,6 @@ const StudentDetailsPage = () => {
         </div>
       </header>
       
-      {/* Stats Section */}
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6 mb-8">
         <StatCard title="All Students" value={globalStats.totalStudents} icon={<HiUserGroup />} color="bg-gradient-to-br from-blue-500 to-blue-600" onClick={() => handleFilterChange('classFilter', null)} isActive={!classFilter} />
         <StatCard title="Fees Collected" value={`Rs. ${filteredStats.totalFeesCollected.toLocaleString()}`} icon={<FaMoneyBillWave />} color="bg-gradient-to-br from-green-500 to-green-600" />
@@ -454,7 +454,6 @@ const StudentDetailsPage = () => {
         ))}
       </section>
 
-      {/* Filters Section */}
       <section className="mb-6 p-4 bg-white rounded-xl shadow-md">
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 items-end">
           <div className="md:col-span-2">
@@ -484,7 +483,6 @@ const StudentDetailsPage = () => {
         </div>
       </section>
 
-      {/* Active Filters Display */}
       {(classFilter || feeFilter.month !== 'all' || selectedStudents.size > 0) && (
         <div className="mb-4 flex items-center gap-4 flex-wrap">
           <h3 className="text-lg font-semibold text-gray-700">Active:</h3>
@@ -507,7 +505,6 @@ const StudentDetailsPage = () => {
         </div>
       )}
 
-      {/* Main Student Table */}
       <main className="bg-white shadow-xl rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -549,7 +546,6 @@ const StudentDetailsPage = () => {
         </div>
       </main>
 
-      {/* Add/Edit Modal */}
       {isAddOrEditModalOpen && studentToEdit && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
           <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
@@ -569,7 +565,6 @@ const StudentDetailsPage = () => {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
       {studentToDelete && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
           <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
@@ -595,20 +590,30 @@ const StudentDetailsPage = () => {
               <button onClick={() => { setSelectedStudent(null); }} className="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">Close</button>
             </header>
             <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              
+              {/* CHANGE: Updated monthly fee card to include Fee and Remarks inputs */}
               {MONTHS.map(month => (
                 <div key={month} className={`p-4 rounded-xl border-2 transition-all ${feeDetails[month]?.paid ? 'border-green-400 bg-green-50' : 'border-red-300 bg-red-50'}`}>
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-3">
                     <h3 className="font-semibold text-gray-700">{month}</h3>
                     <button onClick={() => handleTogglePaid(month)} className="transform hover:scale-110 transition-transform">
                       {feeDetails[month]?.paid ? <BsCheckLg className="w-6 h-6 text-green-500" /> : <BsXLg className="w-6 h-6 text-red-500" />}
                     </button>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-600">Fee:</span>
-                    <input type="number" value={feeDetails[month]?.amount || ''} onChange={(e) => handleFeeChange(month, 'amount', Number(e.target.value))} className="w-full px-2 py-1 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" />
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-600 w-16">Fee:</span>
+                      <input type="number" value={feeDetails[month]?.amount || ''} onChange={(e) => handleFeeChange(month, 'amount', Number(e.target.value))} className="w-full px-2 py-1 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-600 w-16">Remarks:</span>
+                      <input type="text" placeholder="e.g., Cash" value={feeDetails[month]?.remarks || ''} onChange={(e) => handleFeeChange(month, 'remarks', e.target.value)} className="w-full px-2 py-1 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" />
+                    </div>
                   </div>
                 </div>
               ))}
+              
+              {/* CHANGE: Updated 'Additional' fee card to include remarks */}
               <div className={`p-4 rounded-xl border-2 col-span-1 md:col-span-2 lg:col-span-3 transition-all ${feeDetails['Additional']?.paid ? 'border-green-400 bg-green-50' : 'border-gray-300 bg-gray-50'}`}>
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-semibold text-gray-700">Additional / Extras</h3>
@@ -616,10 +621,18 @@ const StudentDetailsPage = () => {
                     {feeDetails['Additional']?.paid ? <BsCheckLg className="w-6 h-6 text-green-500" /> : <span className="text-xs text-gray-500 font-semibold px-2 py-1 rounded-full bg-gray-200 hover:bg-gray-300">Mark Paid</span>}
                   </button>
                 </div>
-                <input type="text" placeholder="Description (e.g., 'Trip Fee')" value={feeDetails['Additional']?.description || ''} onChange={(e) => handleFeeChange('Additional', 'description', e.target.value)} className="w-full px-2 py-1 border-gray-300 rounded-md mb-2 text-sm focus:ring-indigo-500 focus:border-indigo-500" />
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-600">Fee:</span>
-                  <input type="number" value={feeDetails['Additional']?.amount || ''} onChange={(e) => handleFeeChange('Additional', 'amount', Number(e.target.value))} className="w-full px-2 py-1 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" />
+                <div className="space-y-2">
+                    <input type="text" placeholder="Description (e.g., 'Trip Fee')" value={feeDetails['Additional']?.description || ''} onChange={(e) => handleFeeChange('Additional', 'description', e.target.value)} className="w-full px-2 py-1 border-gray-300 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-600">Fee:</span>
+                        <input type="number" value={feeDetails['Additional']?.amount || ''} onChange={(e) => handleFeeChange('Additional', 'amount', Number(e.target.value))} className="w-full px-2 py-1 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-600">Remarks:</span>
+                        <input type="text" placeholder="e.g., Online" value={feeDetails['Additional']?.remarks || ''} onChange={(e) => handleFeeChange('Additional', 'remarks', e.target.value)} className="w-full px-2 py-1 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" />
+                      </div>
+                    </div>
                 </div>
               </div>
             </section>
