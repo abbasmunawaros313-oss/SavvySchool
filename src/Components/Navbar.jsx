@@ -9,6 +9,7 @@ const Navbar = ({ onLogout }) => {
       
         { name: 'Student Section', path: '/students' },
         { name: 'Staff Section', path: '/staff' },
+        { name: 'Fee Slip Generator', path: '/feeslipgen' },
     ];
 
     return (
