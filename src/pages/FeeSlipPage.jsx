@@ -89,6 +89,8 @@ const VoucherPreview = ({ slip, onClose }) => {
         pdf.setFontSize(10);
         pdf.setFont('helvetica', 'normal');
         pdf.text("Quaid-e-Azam Campus", margin + 25, y + 15);
+         pdf.setFont('helvetica', 'bold');
+        pdf.text("For Online Payment : EasyPaisa : 03XXXXXXXX", margin + 50, y +21);
         pdf.setFillColor(230, 230, 230);
         pdf.rect(margin + 5, y + 3, 15, 15, 'F');
         
@@ -404,4 +406,3 @@ const FeeVoucherManagement = () => {
 };
 
 export default FeeVoucherManagement;
-
