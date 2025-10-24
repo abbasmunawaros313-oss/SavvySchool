@@ -344,8 +344,8 @@ const FeeVoucherManagement = () => {
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
       <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
     <h1 className="text-3xl md:text-4xl font-bold text-gray-800 items-center mb-6">Fee Slip Management</h1>
-      <h4 className="">Your are on Trail Version For this Section</h4>
-      <h4 className="">Ends on 23/oct/2025</h4>
+      <h4 className="">Powerd by Google Storage</h4>
+      <h4 className="">Ends on 15/Nov/2025</h4>
 
     </div>      
       {/* --- Stat Boxes --- */}
